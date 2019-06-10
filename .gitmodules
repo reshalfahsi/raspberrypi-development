@@ -1,0 +1,6 @@
+[submodule "baremetal"]
+	path = baremetal
+	url = https://github.com/reshalfahsi/baremetal-pi
+[submodule "editkernelname"]
+	path = editkernelname
+	url = https://github.com/reshalfahsi/raspi-kernel-name-editing
