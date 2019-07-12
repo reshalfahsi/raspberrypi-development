@@ -94,8 +94,13 @@ static int device_open(struct inode *inode, struct file *file)
 		return -EBUSY;
 
 	Device_Open++;
-	//sprintf(msg, "I already told you %d times Hello world!\n", counter++);
-  sprintf(msg, "Kernel module message written by Agus Bejo (called %d times)\n", counter++);
+	
+	if((counter%2)==1)
+        	sprintf(msg, "Resha Dwika Hefni Al-Fahsi\n");
+	else if((counter%2)==0){
+		sprintf(msg, "16/394959/TK/44251\n");
+	}
+	counter++;
 	msg_Ptr = msg;
 	try_module_get(THIS_MODULE);
 
