@@ -36,22 +36,45 @@ int main() {
 	
 	//fwrite();
 
-	while(true){
-		strcpy(buffer,"LED ON");
-		fwrite(buffer,sizeof(buffer),1,fp);
-		strcpy(buffer,"");					
-		
-		strcpy(buffer,"DELAY");
-		fwrite(buffer,sizeof(buffer),1,fp);
-		strcpy(buffer, "");
-		
-		strcpy(buffer,"LED OFF");
-		fwrite(buffer,sizeof(buffer),1,fp);
-		strcpy(buffer, "");
+	int button1_state = 0;
+	int button2_state = 0;
 
-		strcpy(buffer,"DELAY");
-		fwrite(buffer,sizeof(buffer),1,fp);
-		strcpy(buffer, "");
+	while(true){
+		strcpy(buffer,"READ BUTTON 1");
+		button1_state += fwrite(buffer,sizeof(buffer),1,fp);
+		strcpy(buffer,"");
+
+		strcpy(buffer,"READ BUTTON 2");
+		button2_state += fwrite(buffer,sizeof(buffer),1,fp);
+		strcpy(buffer,"");
+		
+		if(button1_state==0&&button2_state==1){
+			button2_state = 0;		
+		}
+
+		if((button1_state%2)==1&&(button2_state%2)==0){
+			strcpy(buffer,"LED ON");
+			fwrite(buffer,sizeof(buffer),1,fp);
+			strcpy(buffer,"");
+
+			strcpy(buffer,"DELAY");
+			fwrite(buffer,sizeof(buffer),1,fp);
+			strcpy(buffer, "");
+		}
+		else if(((button1_state%2)==(button2_state%2))){
+			strcpy(buffer,"LED OFF");
+			fwrite(buffer,sizeof(buffer),1,fp);
+			strcpy(buffer, "");
+
+			strcpy(buffer,"DELAY");
+			fwrite(buffer,sizeof(buffer),1,fp);
+			strcpy(buffer, "");
+
+			button2_state = 0;
+			button1_state = 0;
+		}
+
+		
 	}
 	//fread(buffer,sizeof(buffer),1,fp);
 	//printf("1. respond from kernel: %s\n",buffer);

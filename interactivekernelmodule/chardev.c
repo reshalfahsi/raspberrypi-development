@@ -43,6 +43,11 @@ static struct gpio leds[] = {
 			{  29, GPIOF_OUT_INIT_HIGH, "LED" },
 	};
 
+static struct gpio buttons[] = {
+			{ 20, GPIOF_IN, "BUTTON 1" },
+			{ 21, GPIOF_IN, "BUTTON 2" }
+	};
+
 static struct file_operations fops = {
 	.read = device_read,
 	.write = device_write,
@@ -104,14 +109,24 @@ static int device_open(struct inode *inode, struct file *file)
 		return -EBUSY;
 
 	Device_Open++;
+
+	ret = gpio_request_array(leds, ARRAY_SIZE(leds));
 	
-	//if((counter%2)==1)
+	if (ret) {
+		printk(KERN_ERR "Unable to request GPIOs for LEDs: %d\n", ret);
+		return ret;
+	}	
+
+	ret = gpio_request_array(buttons, ARRAY_SIZE(buttons));
+	
+	if (ret) {
+		printk(KERN_ERR "Unable to request GPIOs for BUTTONs: %d\n", ret);
+		gpio_free_array(leds, ARRAY_SIZE(leds));
+		return ret;
+	}	
+
         sprintf(msg, "Created by: Resha Dwika Hefni Al-Fahsi, 16/394959/TK/44251");
-	//\n");
-	//else if((counter%2)==0){
-	//sprintf(msg, "16/394959/TK/44251\n");
-	//}
-	//counter++;
+	
 	msg_Ptr = msg;
 	try_module_get(THIS_MODULE);
 
@@ -124,6 +139,19 @@ static int device_open(struct inode *inode, struct file *file)
 static int device_release(struct inode *inode, struct file *file)
 {
 	Device_Open--;		/* We're now ready for our next caller */
+
+	int i;
+	
+	printk(KERN_INFO "%s\n", __func__);
+	free_irq(button_irqs[0], NULL);
+	free_irq(button_irqs[1], NULL);
+	for(i = 0; i < ARRAY_SIZE(leds); i++) {
+		gpio_set_value(leds[i].gpio, 0);
+	}
+	
+	// unregister
+	gpio_free_array(leds, ARRAY_SIZE(leds));
+	gpio_free_array(buttons, ARRAY_SIZE(buttons));
 
 	/* 
 	 * Decrement the usage count, or else once you opened the file, you'll
@@ -195,163 +223,14 @@ device_write(struct file *filp, const char *buff, size_t len, loff_t * off)
 	else if(!strcmp(buff,"DELAY")){
 		usleep_range(0,500000);
 	}
+	else if(!strcmp(buff,"READ BUTTON 1")){
+		bytes_write = gpio_get_value(buttons[0].gpio)	
+	}
+	else if(!strcmp(buff,"READ BUTTON 2")){
+		bytes_write = gpio_get_value(buttons[1].gpio)	
+	}
 
 	return bytes_write;
 	//printk(KERN_ALERT "Sorry, this operation isn't supported.\n");
 	//return -EINVAL;
 }
-
-/* 
-
-	#include <linux/module.h>
-	#include <linux/kernel.h>
-	#include <linux/init.h>
-	#include <linux/gpio.h>
-	#include <linux/interrupt.h>
-	#include <linux/delay.h>
-	
-	MODULE_LICENSE("GPL"); 
-	
-	#define DRIVER_AUTHOR "Resha Dwika Hefni Al-Fahsi <16/394959/TK/44251>"
-	#define DRIVER_DESC   "Loadable Kernel Module to Access Raspberry Pi I/O"
-	
-	static char *nama = "Resha Dwika Hefni Al-Fahsi\n";
-	static char *nim = "<16/394959/TK/44251>\n";
-	
-	int enable = 0;
-	module_param(enable, int, 0644);
-	
-	static struct gpio leds[] = {
-			{  19, GPIOF_OUT_INIT_HIGH, "LED" },
-	};
-	
-	// Define GPIOs for BUTTONS
-	static struct gpio buttons[] = {
-			{ 20, GPIOF_IN, "BUTTON 1" },
-			{ 21, GPIOF_IN, "BUTTON 2" }
-	};
-	
-	static int button_irqs[] = { -1,-1 };
-	
-	static irqreturn_t button_isr(int irq, void *data)
-	{
-		if(enable){
-			if(irq == button_irqs[0] //&& !gpio_get_value(leds[0].gpio)
-			) {
-				
-					gpio_set_value(leds[0].gpio, 1);
-					//usleep_range(0,500000);
-					//gpio_set_value(leds[0].gpio, 0);
-					//usleep_range(0,500000);
-			}
-		
-			else if(irq == button_irqs[1] //&& gpio_get_value(leds[0].gpio)
-			) {
-				
-					gpio_set_value(leds[0].gpio, 0);
-			}
-		}
-		
-		return IRQ_HANDLED;
-	}
-	
-	static int __init init_tugas(void)
-	{
-		printk(KERN_INFO "Blink LED Module installed\n");
-		printk(KERN_INFO "Author: %s\n",nama);
-		printk(KERN_INFO "Author's Student Number: %s\n",nim);
-		int ret = 0;
-	
-		printk(KERN_INFO "%s\n", __func__);
-		ret = gpio_request_array(leds, ARRAY_SIZE(leds));
-	
-		if (ret) {
-			printk(KERN_ERR "Unable to request GPIOs for LEDs: %d\n", ret);
-			return ret;
-		}
-	
-		ret = gpio_request_array(buttons, ARRAY_SIZE(buttons));
-	
-		if (ret) {
-			printk(KERN_ERR "Unable to request GPIOs for BUTTONs: %d\n", ret);
-			goto fail1;
-		}
-	
-		printk(KERN_INFO "Current button1 value: %d\n", gpio_get_value(buttons[0].gpio));
-	
-		ret = gpio_to_irq(buttons[0].gpio);
-	
-		if(ret < 0) {
-			printk(KERN_ERR "Unable to request IRQ: %d\n", ret);
-			goto fail2;
-		}
-		button_irqs[0] = ret;
-	
-		printk(KERN_INFO "Successfully requested BUTTON1 IRQ # %d\n", button_irqs[0]);
-	
-		ret = request_irq(button_irqs[0], button_isr, IRQF_TRIGGER_RISING // | IRQF_DISABLED 
-			, "gpiomod#button1", NULL);
-	
-		if(ret) {
-			printk(KERN_ERR "Unable to request IRQ: %d\n", ret);
-			goto fail2;
-		}
-		ret = gpio_to_irq(buttons[1].gpio);
-	
-		if(ret < 0) {
-			printk(KERN_ERR "Unable to request IRQ: %d\n", ret);
-			goto fail2;
-		}
-	
-		button_irqs[1] = ret;
-	
-		printk(KERN_INFO "Successfully requested BUTTON2 IRQ # %d\n", button_irqs[1]);
-	
-		ret = request_irq(button_irqs[1], button_isr, IRQF_TRIGGER_RISING // | IRQF_DISABLED
-			, "gpiomod#button2", NULL);
-	
-		if(ret) {
-			printk(KERN_ERR "Unable to request IRQ: %d\n", ret);
-			goto fail3;
-		}	
-		return 0;
-	
-	fail3:
-		free_irq(button_irqs[0], NULL);
-	
-	fail2:
-		gpio_free_array(buttons, ARRAY_SIZE(leds));
-	
-	fail1:
-		gpio_free_array(leds, ARRAY_SIZE(leds));
-	
-		return ret;
-		
-	}
-	
-	static void __exit cleanup_tugas(void)
-	{
-		printk(KERN_INFO "Blink LED Module has been removed\n");
-	
-		int i;
-	
-		printk(KERN_INFO "%s\n", __func__);
-		free_irq(button_irqs[0], NULL);
-		free_irq(button_irqs[1], NULL);
-		for(i = 0; i < ARRAY_SIZE(leds); i++) {
-			gpio_set_value(leds[i].gpio, 0);
-		}
-	
-		// unregister
-		gpio_free_array(leds, ARRAY_SIZE(leds));
-		gpio_free_array(buttons, ARRAY_SIZE(buttons));
-	}
-	
-	
-	MODULE_LICENSE("GPL");
-	MODULE_AUTHOR(DRIVER_AUTHOR);
-	MODULE_DESCRIPTION(DRIVER_DESC);
-	module_init(init_tugas);
-	module_exit(cleanup_tugas);
-
-*/
