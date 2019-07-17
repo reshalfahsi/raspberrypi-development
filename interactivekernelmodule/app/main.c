@@ -48,11 +48,11 @@ int main() {
 		button2_state += fwrite(buffer,sizeof(buffer),1,fp);
 		strcpy(buffer,"");
 		
-		if(button1_state==0&&button2_state==1){
+		if((button1_state==0)&&(button2_state>0){
 			button2_state = 0;		
 		}
 
-		if((button1_state%2)==1&&(button2_state%2)==0){
+		if((button1_state>0)&&(button2_state==0)){
 			strcpy(buffer,"LED ON");
 			fwrite(buffer,sizeof(buffer),1,fp);
 			strcpy(buffer,"");
@@ -60,8 +60,10 @@ int main() {
 			strcpy(buffer,"DELAY");
 			fwrite(buffer,sizeof(buffer),1,fp);
 			strcpy(buffer, "");
+
+			button1_state = 1;
 		}
-		else if(((button1_state%2)==(button2_state%2))){
+		else if((button1_state>0)&&(button2_state>0)){
 			strcpy(buffer,"LED OFF");
 			fwrite(buffer,sizeof(buffer),1,fp);
 			strcpy(buffer, "");
