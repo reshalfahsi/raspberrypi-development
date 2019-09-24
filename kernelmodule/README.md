@@ -13,7 +13,7 @@ $ make clean
 $ make all
 $ make insmod
 $ dmesg
-~~~
+~~~~
 
 ### Phase II : ###
 
