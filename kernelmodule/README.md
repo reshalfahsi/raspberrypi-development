@@ -17,7 +17,7 @@ $ dmesg
 
 ### Phase II : ###
 
-After run the `dmesg` check the ** major number ** which kernel module that was inserted then change the command in [Makefile](https://github.com/reshalfahsi/raspberrypi-development/blob/master/kernelmodule/Makefile) to command that the terminal has said before. Then run this following command:
+After run the `dmesg` check the **major number** which kernel module that was inserted then change the command in [Makefile](https://github.com/reshalfahsi/raspberrypi-development/blob/master/kernelmodule/Makefile) to command that the terminal has said before. Then run this following command:
 
 ~~~~
 $ make mknod
