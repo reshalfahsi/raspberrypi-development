@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <errno.h>
 
 #define device "/dev/chardev"
 
@@ -17,7 +16,6 @@ int main() {
           fp = fopen(device,"r");
 	  if(fp == NULL) {
   		printf("Can't open file %s\n",device);
-		fprintf(stderr, "fopen() failed: %s\n", strerror(errno));
   		return 0;
 	  }
 
